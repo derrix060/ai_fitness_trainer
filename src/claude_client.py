@@ -24,7 +24,7 @@ class ClaudeClient:
             "--verbose",
             "--model", self._model,
             "--allowedTools",
-            "mcp__intervals-icu__*,mcp__google-calendar__*,WebSearch",
+            "mcp__intervals-icu__*,mcp__google-calendar__*,WebSearch,Read,Edit",
             "--dangerously-skip-permissions",
         ]
 

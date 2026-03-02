@@ -7,4 +7,5 @@ dependencies = [
     "aiogram>=3.25.0",
     "aiosqlite>=0.22.0",
     "python-dotenv>=1.2.0",
+    "apscheduler>=3.11.0",
 ]

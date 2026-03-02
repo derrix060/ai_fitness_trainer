@@ -127,6 +127,15 @@ async def run_bot(config: Config, session_store: SessionStore) -> None:
     dp = Dispatcher()
     dp.include_router(router)
 
+    # Start morning briefing scheduler
+    from src.scheduler import setup_scheduler
+
+    scheduler = setup_scheduler(config, bot, _claude, session_store)
+    scheduler.start()
+
     logger.info("Starting Telegram bot (allowed users: %s)", config.allowed_user_ids)
 
-    await dp.start_polling(bot)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        scheduler.shutdown()

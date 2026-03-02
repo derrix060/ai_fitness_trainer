@@ -5,4 +5,5 @@ services:
     volumes:
       - ./data:/app/data
       - ./config:/app/config:ro
+      - ./CLAUDE.md:/app/CLAUDE.md
     restart: unless-stopped

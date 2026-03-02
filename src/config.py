@@ -24,6 +24,11 @@ class Config:
     # Paths
     data_dir: Path = Path("data")
 
+    # Morning briefing cron
+    briefing_hour: int = 7
+    briefing_minute: int = 0
+    timezone: str = ""
+
     # Logging
     log_level: str = "INFO"
 
@@ -44,5 +49,8 @@ def load_config() -> Config:
         intervals_api_key=os.environ.get("INTERVALS_API_KEY", ""),
         intervals_athlete_id=os.environ.get("INTERVALS_ATHLETE_ID", ""),
         data_dir=Path(os.environ.get("DATA_DIR", "data")),
+        briefing_hour=int(os.environ.get("BRIEFING_HOUR", "7")),
+        briefing_minute=int(os.environ.get("BRIEFING_MINUTE", "0")),
+        timezone=os.environ["TZ"],
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
     )
