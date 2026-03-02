@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "intervals-icu": {
+      "command": "/app/intervals-mcp",
+      "env": {
+        "INTERVALS_API_KEY": "${INTERVALS_API_KEY}",
+        "INTERVALS_ATHLETE_ID": "${INTERVALS_ATHLETE_ID}"
+      }
+    },
+    "google-calendar": {
+      "command": "npx",
+      "args": ["-y", "@cocal/google-calendar-mcp"],
+      "env": {
+        "GOOGLE_OAUTH_CREDENTIALS": "/app/config/gcp-oauth.keys.json"
+      }
+    }
+  }
+}
