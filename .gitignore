@@ -15,6 +15,9 @@ data/
 # Config secrets
 config/
 
+# Athlete profile (private)
+profile/
+
 # uv
 uv.lock
 

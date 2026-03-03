@@ -6,4 +6,6 @@ services:
       - ./data:/app/data
       - ./config:/app/config:ro
       - ./CLAUDE.md:/app/CLAUDE.md
+      - ./profile/athlete_profile.md:/app/profile/athlete_profile.md
+      - ./profile/learned_preferences.md:/app/profile/learned_preferences.md
     restart: unless-stopped
