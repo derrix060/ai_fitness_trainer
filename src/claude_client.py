@@ -45,56 +45,63 @@ class ClaudeClient:
             )
 
             result_data = None
+            buf = b""
 
-            async for line in proc.stdout:
-                text = line.decode(errors="replace").strip()
-                if not text:
-                    continue
+            while True:
+                chunk = await proc.stdout.read(65536)
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\n" in buf:
+                    line, buf = buf.split(b"\n", 1)
+                    text = line.decode(errors="replace").strip()
+                    if not text:
+                        continue
 
-                try:
-                    event = json.loads(text)
-                except json.JSONDecodeError:
-                    continue
+                    try:
+                        event = json.loads(text)
+                    except json.JSONDecodeError:
+                        continue
 
-                event_type = event.get("type")
+                    event_type = event.get("type")
 
-                if event_type == "system":
-                    mcp = event.get("mcp_servers", [])
-                    statuses = ", ".join(
-                        f"{s['name']}={s['status']}" for s in mcp
-                    )
-                    if statuses:
-                        logger.info("    MCP: %s", statuses)
+                    if event_type == "system":
+                        mcp = event.get("mcp_servers", [])
+                        statuses = ", ".join(
+                            f"{s['name']}={s['status']}" for s in mcp
+                        )
+                        if statuses:
+                            logger.info("    MCP: %s", statuses)
 
-                elif event_type == "assistant":
-                    msg = event.get("message", {})
-                    for block in msg.get("content", []):
-                        if block.get("type") == "tool_use":
-                            tool_name = block.get("name", "?")
-                            tool_input = json.dumps(
-                                block.get("input", {}), ensure_ascii=False
-                            )
-                            logger.info(
-                                "    Tool call: %s(%s)",
-                                tool_name,
-                                tool_input[:200],
-                            )
-                        elif block.get("type") == "text":
-                            snippet = block.get("text", "")[:200]
-                            if snippet:
-                                logger.info("    Thinking: %s", snippet)
+                    elif event_type == "assistant":
+                        msg = event.get("message", {})
+                        for block in msg.get("content", []):
+                            if block.get("type") == "tool_use":
+                                tool_name = block.get("name", "?")
+                                tool_input = json.dumps(
+                                    block.get("input", {}), ensure_ascii=False
+                                )
+                                logger.info(
+                                    "    Tool call: %s(%s)",
+                                    tool_name,
+                                    tool_input[:200],
+                                )
+                            elif block.get("type") == "text":
+                                snippet = block.get("text", "")[:200]
+                                if snippet:
+                                    logger.info("    Thinking: %s", snippet)
 
-                elif event_type == "tool_result":
-                    tool_name = event.get("tool_name", "?")
-                    content = event.get("content", "")
-                    if isinstance(content, str):
-                        snippet = content[:150]
-                    else:
-                        snippet = json.dumps(content, ensure_ascii=False)[:150]
-                    logger.info("    Tool result: %s -> %s", tool_name, snippet)
+                    elif event_type == "tool_result":
+                        tool_name = event.get("tool_name", "?")
+                        content = event.get("content", "")
+                        if isinstance(content, str):
+                            snippet = content[:150]
+                        else:
+                            snippet = json.dumps(content, ensure_ascii=False)[:150]
+                        logger.info("    Tool result: %s -> %s", tool_name, snippet)
 
-                elif event_type == "result":
-                    result_data = event
+                    elif event_type == "result":
+                        result_data = event
 
             await asyncio.wait_for(proc.wait(), timeout=self._timeout)
 
