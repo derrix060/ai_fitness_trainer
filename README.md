@@ -73,40 +73,19 @@ The bot uses [intervals-mcp](https://github.com/derrix060/intervals-mcp), a Go-b
 
 ### 4. Google Calendar setup (optional)
 
-<details>
-<summary>Click to expand Google Calendar setup instructions</summary>
+See [docs/google-calendar-setup.md](docs/google-calendar-setup.md) for the full guide, including multi-account support (e.g. personal + work calendars).
 
-#### Create a Google Cloud project
+Quick version:
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a **New Project** (e.g. "Calendar MCP")
-3. Go to **APIs & Services** > **Library**, search for "Google Calendar API", and **Enable** it
-
-#### Configure OAuth consent screen
-
-1. Go to **APIs & Services** > **OAuth consent screen**
-2. Select **External**, click **Create**
-3. Fill in the app name and your email
-4. Add scope: `https://www.googleapis.com/auth/calendar.events`
-5. Add your Google email as a test user
-
-#### Create OAuth credentials
-
-1. Go to **APIs & Services** > **Credentials**
-2. Click **Create Credentials** > **OAuth client ID**
-3. Select **Desktop app** as the application type
-4. Click **Create**, then **Download JSON**
-5. Save the file to `./config/gcp-oauth.keys.json`
-
-On first run, the MCP server opens a browser for OAuth consent (one-time). Run it locally first if using Docker:
-
-```bash
-npx -y @cocal/google-calendar-mcp
-```
-
-Then mount the resulting token into the container.
-
-</details>
+1. Create a Google Cloud project and enable the **Google Calendar API**
+2. Create **OAuth credentials** (Desktop app) and save to `./config/gcp-oauth.keys.json`
+3. Run the auth flow:
+   ```bash
+   GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
+   GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
+     npx -y @cocal/google-calendar-mcp auth
+   ```
+4. For multiple accounts, pass a nickname: `... auth personal`, `... auth work`
 
 ### 5. Configure environment
 
