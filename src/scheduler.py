@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -24,9 +25,13 @@ MORNING_BRIEFING_PROMPT = (
 )
 
 ACTIVITY_ANALYSIS_PROMPT = """\
-Check Intervals.icu for any activities completed since {since_date}.
+Check Intervals.icu for any activities from the last 24 hours \
+(use oldest={since_date}).
 
-If there are new activities, for EACH one provide a detailed analysis:
+{skip_clause}
+
+For EACH new activity, start your response with ANALYZED:<activity_id> on its \
+own line (e.g. ANALYZED:i129194330), then provide a detailed analysis:
 
 1. **Activity summary**: type, duration, distance, average HR, average power/pace
 2. **Training classification**: what kind of training was this? (recovery, endurance/zone 2, tempo/sweetspot, threshold, VO2max, anaerobic, sprint, strength, etc.). Explain WHY you classified it this way based on the intensity distribution, HR zones, and power/pace data.
@@ -36,7 +41,7 @@ If there are new activities, for EACH one provide a detailed analysis:
 
 For every scientific claim, include a reference with author, year, journal, and the finding. Format references as a numbered list at the end.
 
-If there are NO new activities since {since_date}, respond with exactly: NO_NEW_ACTIVITIES
+If there are NO new activities to analyze, respond with exactly: NO_NEW_ACTIVITIES
 """
 
 
@@ -67,13 +72,31 @@ def setup_scheduler(
             logger.info("Morning briefing sent to user %d", user_id)
 
     async def activity_check() -> None:
-        since_date = await session_store.get_last_activity_check()
-        logger.info("Checking for new activities since %s", since_date)
+        since_date = (
+            datetime.now() - timedelta(hours=24)
+        ).strftime("%Y-%m-%dT%H:%M")
+        analyzed = await session_store.get_analyzed_activities()
+        logger.info(
+            "Checking for new activities since %s (skip %d already analyzed)",
+            since_date,
+            len(analyzed),
+        )
+
+        if analyzed:
+            skip_clause = (
+                "Skip these activity IDs (already analyzed): "
+                + ", ".join(sorted(analyzed))
+            )
+        else:
+            skip_clause = ""
 
         for user_id in config.allowed_user_ids:
             session_id = await session_store.get_session(user_id)
 
-            prompt = ACTIVITY_ANALYSIS_PROMPT.format(since_date=since_date)
+            prompt = ACTIVITY_ANALYSIS_PROMPT.format(
+                since_date=since_date,
+                skip_clause=skip_clause,
+            )
             response_text, new_session_id = await claude.send_message(
                 prompt, session_id
             )
@@ -85,14 +108,23 @@ def setup_scheduler(
                 logger.info("No new activities for user %d", user_id)
                 continue
 
-            logger.info("Sending activity analysis to user %d", user_id)
-            for chunk in _split_message(response_text):
-                await bot.send_message(chat_id=user_id, text=chunk)
+            # Extract analyzed activity IDs from response
+            for match in re.finditer(r"ANALYZED:(i\d+)", response_text):
+                aid = match.group(1)
+                await session_store.mark_activity_analyzed(aid)
+                logger.info("Marked activity %s as analyzed", aid)
 
-        # Update last check timestamp
-        now = datetime.now().strftime("%Y-%m-%dT%H:%M")
-        await session_store.set_value("last_activity_check", now)
-        logger.info("Updated last activity check to %s", now)
+            # Strip ANALYZED: markers before sending to user
+            clean_response = re.sub(
+                r"^ANALYZED:i\d+\n?", "", response_text, flags=re.MULTILINE
+            ).strip()
+
+            if clean_response:
+                logger.info(
+                    "Sending activity analysis to user %d", user_id
+                )
+                for chunk in _split_message(clean_response):
+                    await bot.send_message(chat_id=user_id, text=chunk)
 
     scheduler.add_job(
         morning_briefing,
@@ -106,7 +138,7 @@ def setup_scheduler(
 
     scheduler.add_job(
         activity_check,
-        IntervalTrigger(hours=1),
+        IntervalTrigger(minutes=30),
         id="activity_check",
         replace_existing=True,
     )
@@ -117,6 +149,6 @@ def setup_scheduler(
         config.briefing_minute,
         config.timezone,
     )
-    logger.info("Activity check scheduled every hour")
+    logger.info("Activity check scheduled every 30 minutes")
 
     return scheduler

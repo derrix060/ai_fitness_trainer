@@ -11,7 +11,8 @@
       "command": "npx",
       "args": ["-y", "@cocal/google-calendar-mcp"],
       "env": {
-        "GOOGLE_OAUTH_CREDENTIALS": "/app/config/gcp-oauth.keys.json"
+        "GOOGLE_OAUTH_CREDENTIALS": "/app/config/gcp-oauth.keys.json",
+        "GOOGLE_CALENDAR_MCP_TOKEN_PATH": "/app/config/gcal-tokens.json"
       }
     }
   }

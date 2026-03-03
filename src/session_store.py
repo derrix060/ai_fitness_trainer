@@ -25,6 +25,14 @@ class SessionStore:
             )
             """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analyzed_activities (
+                activity_id TEXT PRIMARY KEY,
+                analyzed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
         await db.commit()
 
     async def get_session(self, user_id: int) -> str | None:
@@ -88,3 +96,25 @@ class SessionStore:
         if val:
             return val
         return datetime.now().strftime("%Y-%m-%d")
+
+    async def get_analyzed_activities(self) -> set[str]:
+        """Return set of activity IDs that have already been analyzed."""
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_tables(db)
+            cursor = await db.execute(
+                "SELECT activity_id FROM analyzed_activities"
+            )
+            rows = await cursor.fetchall()
+            return {row[0] for row in rows}
+
+    async def mark_activity_analyzed(self, activity_id: str) -> None:
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_tables(db)
+            await db.execute(
+                """
+                INSERT OR IGNORE INTO analyzed_activities
+                    (activity_id) VALUES (?)
+                """,
+                (activity_id,),
+            )
+            await db.commit()
