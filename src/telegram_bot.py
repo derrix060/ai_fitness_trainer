@@ -1,6 +1,7 @@
 import logging
 
 from aiogram import Bot, Dispatcher, Router, F
+from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message, ReactionTypeEmoji
 
@@ -107,7 +108,25 @@ async def handle_text(message: Message) -> None:
 
     # Send response, splitting if needed
     for chunk in _split_message(response_text):
-        await message.answer(chunk)
+        try:
+            await message.answer(chunk, parse_mode=ParseMode.HTML)
+        except Exception:
+            logger.warning("HTML parse failed, falling back to plain text")
+            await message.answer(chunk)
+
+
+async def send_formatted(bot: Bot, chat_id: int, text: str) -> None:
+    """Split and send a message with HTML formatting, falling back to plain."""
+    for chunk in _split_message(text):
+        try:
+            await bot.send_message(
+                chat_id=chat_id,
+                text=chunk,
+                parse_mode=ParseMode.HTML,
+            )
+        except Exception:
+            logger.warning("HTML parse failed, falling back to plain text")
+            await bot.send_message(chat_id=chat_id, text=chunk)
 
 
 def _is_allowed(message: Message) -> bool:

@@ -10,7 +10,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from src.claude_client import ClaudeClient
 from src.config import Config
 from src.session_store import SessionStore
-from src.telegram_bot import _split_message
+from src.telegram_bot import send_formatted
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,7 @@ def setup_scheduler(
             if new_session_id:
                 await session_store.save_session(user_id, new_session_id)
 
-            for chunk in _split_message(response_text):
-                await bot.send_message(chat_id=user_id, text=chunk)
+            await send_formatted(bot, user_id, response_text)
 
             logger.info("Morning briefing sent to user %d", user_id)
 
@@ -123,8 +122,7 @@ def setup_scheduler(
                 logger.info(
                     "Sending activity analysis to user %d", user_id
                 )
-                for chunk in _split_message(clean_response):
-                    await bot.send_message(chat_id=user_id, text=chunk)
+                await send_formatted(bot, user_id, clean_response)
 
     scheduler.add_job(
         morning_briefing,
