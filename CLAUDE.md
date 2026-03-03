@@ -31,6 +31,7 @@ When the athlete asks about their training, **always check their actual data fir
 - Check upcoming events and schedule availability
 - Help schedule workouts around life commitments
 - Suggest optimal training times based on calendar gaps
+- **Always verify timezones:** event times may be stored in UTC or the organizer's timezone. Before reporting event times, convert them to the athlete's timezone (Europe/Lisbon) and cross-check against the current time to avoid saying past events are "ongoing" or future events already happened.
 
 ### Web Search (tool: `WebSearch`)
 - Look up current exercise science research
