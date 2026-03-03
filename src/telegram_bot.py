@@ -2,7 +2,7 @@ import logging
 
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, ReactionTypeEmoji
 
 from src.claude_client import ClaudeClient
 from src.config import Config
@@ -87,8 +87,8 @@ async def handle_text(message: Message) -> None:
     user_id = message.from_user.id
     user_text = message.text
 
-    # Show typing indicator
-    await message.bot.send_chat_action(chat_id=message.chat.id, action="typing")
+    # React with eyes to acknowledge
+    await message.react([ReactionTypeEmoji(emoji="👀")])
 
     # Get existing session
     session_id = await _session_store.get_session(user_id)
@@ -97,6 +97,9 @@ async def handle_text(message: Message) -> None:
     response_text, new_session_id = await _claude.send_message(
         user_text, session_id
     )
+
+    # Remove eyes reaction
+    await message.react([])
 
     # Persist session
     if new_session_id:

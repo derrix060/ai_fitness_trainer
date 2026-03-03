@@ -1,4 +1,5 @@
 import aiosqlite
+from datetime import datetime
 from pathlib import Path
 
 
@@ -6,7 +7,7 @@ class SessionStore:
     def __init__(self, db_path: Path) -> None:
         self._db_path = db_path
 
-    async def _ensure_table(self, db: aiosqlite.Connection) -> None:
+    async def _ensure_tables(self, db: aiosqlite.Connection) -> None:
         await db.execute(
             """
             CREATE TABLE IF NOT EXISTS sessions (
@@ -16,11 +17,19 @@ class SessionStore:
             )
             """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS kv (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+            """
+        )
         await db.commit()
 
     async def get_session(self, user_id: int) -> str | None:
         async with aiosqlite.connect(self._db_path) as db:
-            await self._ensure_table(db)
+            await self._ensure_tables(db)
             cursor = await db.execute(
                 "SELECT session_id FROM sessions WHERE user_id = ?",
                 (user_id,),
@@ -30,7 +39,7 @@ class SessionStore:
 
     async def save_session(self, user_id: int, session_id: str) -> None:
         async with aiosqlite.connect(self._db_path) as db:
-            await self._ensure_table(db)
+            await self._ensure_tables(db)
             await db.execute(
                 """
                 INSERT INTO sessions (user_id, session_id, updated_at)
@@ -45,9 +54,37 @@ class SessionStore:
 
     async def delete_session(self, user_id: int) -> None:
         async with aiosqlite.connect(self._db_path) as db:
-            await self._ensure_table(db)
+            await self._ensure_tables(db)
             await db.execute(
                 "DELETE FROM sessions WHERE user_id = ?",
                 (user_id,),
             )
             await db.commit()
+
+    async def get_value(self, key: str) -> str | None:
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_tables(db)
+            cursor = await db.execute(
+                "SELECT value FROM kv WHERE key = ?", (key,)
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+    async def set_value(self, key: str, value: str) -> None:
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_tables(db)
+            await db.execute(
+                """
+                INSERT INTO kv (key, value) VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (key, value),
+            )
+            await db.commit()
+
+    async def get_last_activity_check(self) -> str:
+        """Return ISO date of last activity check, or today's date."""
+        val = await self.get_value("last_activity_check")
+        if val:
+            return val
+        return datetime.now().strftime("%Y-%m-%d")

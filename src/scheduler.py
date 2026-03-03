@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime
 
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 from src.claude_client import ClaudeClient
 from src.config import Config
@@ -20,6 +22,22 @@ MORNING_BRIEFING_PROMPT = (
     "5. Ask me how I'm feeling and if anything needs adjusting.\n"
     "Keep it concise — this is my morning check-in."
 )
+
+ACTIVITY_ANALYSIS_PROMPT = """\
+Check Intervals.icu for any activities completed since {since_date}.
+
+If there are new activities, for EACH one provide a detailed analysis:
+
+1. **Activity summary**: type, duration, distance, average HR, average power/pace
+2. **Training classification**: what kind of training was this? (recovery, endurance/zone 2, tempo/sweetspot, threshold, VO2max, anaerobic, sprint, strength, etc.). Explain WHY you classified it this way based on the intensity distribution, HR zones, and power/pace data.
+3. **Performance assessment**: how well did it go? Compare to recent similar activities. Look at pacing consistency, cardiac drift, power/pace decoupling, RPE vs actual intensity.
+4. **Scientific context**: use WebSearch to find relevant exercise science research (peer-reviewed papers, systematic reviews) that supports your analysis. For example, if it was a zone 2 ride, cite research on mitochondrial adaptations; if it was intervals, cite research on the specific protocol's effectiveness.
+5. **Key takeaways**: 2-3 actionable insights for future training.
+
+For every scientific claim, include a reference with author, year, journal, and the finding. Format references as a numbered list at the end.
+
+If there are NO new activities since {since_date}, respond with exactly: NO_NEW_ACTIVITIES
+"""
 
 
 def setup_scheduler(
@@ -48,6 +66,34 @@ def setup_scheduler(
 
             logger.info("Morning briefing sent to user %d", user_id)
 
+    async def activity_check() -> None:
+        since_date = await session_store.get_last_activity_check()
+        logger.info("Checking for new activities since %s", since_date)
+
+        for user_id in config.allowed_user_ids:
+            session_id = await session_store.get_session(user_id)
+
+            prompt = ACTIVITY_ANALYSIS_PROMPT.format(since_date=since_date)
+            response_text, new_session_id = await claude.send_message(
+                prompt, session_id
+            )
+
+            if new_session_id:
+                await session_store.save_session(user_id, new_session_id)
+
+            if "NO_NEW_ACTIVITIES" in response_text:
+                logger.info("No new activities for user %d", user_id)
+                continue
+
+            logger.info("Sending activity analysis to user %d", user_id)
+            for chunk in _split_message(response_text):
+                await bot.send_message(chat_id=user_id, text=chunk)
+
+        # Update last check timestamp
+        now = datetime.now().strftime("%Y-%m-%dT%H:%M")
+        await session_store.set_value("last_activity_check", now)
+        logger.info("Updated last activity check to %s", now)
+
     scheduler.add_job(
         morning_briefing,
         CronTrigger(
@@ -58,11 +104,19 @@ def setup_scheduler(
         replace_existing=True,
     )
 
+    scheduler.add_job(
+        activity_check,
+        IntervalTrigger(hours=1),
+        id="activity_check",
+        replace_existing=True,
+    )
+
     logger.info(
         "Morning briefing scheduled at %02d:%02d %s",
         config.briefing_hour,
         config.briefing_minute,
         config.timezone,
     )
+    logger.info("Activity check scheduled every hour")
 
     return scheduler
