@@ -12,16 +12,17 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o gcal-mcp ./cmd/gcal-mcp/
 # Also build intervals-mcp
 RUN go install github.com/derrix060/intervals-mcp@latest
 
-# Stage 2: Runtime (Node.js needed only for Claude CLI npm package)
-FROM node:24-bookworm-slim
+# Stage 2: Minimal runtime (no Python, no Node.js)
+FROM debian:bookworm-slim
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Claude CLI via npm (install.sh is blocked from Docker)
-RUN npm install -g @anthropic-ai/claude-code
+# Install Claude CLI (native binary)
+RUN curl -fsSL https://downloads.claude.ai/claude-code-releases/bootstrap.sh | bash && \
+    cp /root/.local/share/claude/versions/* /usr/local/bin/claude
 
 # Copy Go binaries
 COPY --from=builder /build/bot /app/bot
