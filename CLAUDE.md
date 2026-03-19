@@ -93,6 +93,63 @@ When an MCP tool call fails, **never give up or tell the athlete to do it manual
 - Proactively provide fueling tips for every upcoming workout: what to eat, how long before/after/during, what to watch for
 - **Always deliver your analysis in full** — never say "as mentioned before" or assume the athlete already saw it. Every response must be self-contained with the complete answer.
 
+## Intervals.icu Structured Workout Format
+
+Use **MCP tools** (`mcp__intervals-icu__createEvent` / `mcp__intervals-icu__updateEvent`) — never use curl.
+
+### Step structure (HR-ZONE FORMAT — DESCRIPTION PARSING)
+
+**CRITICAL**: Do NOT use `workout_doc.steps` for HR-based workouts. The API silently converts
+`hr: {"units": "hr_zone"}` to `power: {"units": "power_zone"}` server-side — it will look wrong.
+
+**The correct approach**: Write steps in the `description` field using the format below, and
+**omit `workout_doc` entirely**. The server parses the description and auto-generates correct
+`hr: {"units": "hr_zone"}` steps that render as visual HR zone bars.
+
+#### Description step syntax
+
+```
+- [duration] [ramp] Z[zone] HR
+```
+
+- Duration: `Xm` (minutes) or `Xs` (seconds)
+- `ramp` keyword (optional): marks the step as a ramp/transition
+- Zone: integer 1–5 (Z1–Z5)
+- **No shorthand repeats** — list each stride individually (e.g. 4×30s = 4 separate lines)
+
+```
+- 10m ramp Z1 HR
+- 35m Z2 HR
+- 10m Z1 HR
+```
+
+- `category: "WORKOUT"` is **required** on all events
+- Do NOT set `target` field for HR workouts (leave absent)
+
+HR zones for running (LTHR=174): Z1 <146 bpm, Z2 146–155, Z3 155–164, Z4 164–173
+
+### Examples
+
+Running (HR zones) — description-parsing approach (NO workout_doc):
+```json
+{
+  "name": "Run: HM Race Pace", "type": "Run", "category": "WORKOUT",
+  "start_date_local": "2026-03-17T00:00:00",
+  "description": "- 15m ramp Z1 HR\n- 25m Z3 HR\n- 15m Z1 HR"
+}
+```
+
+Cycling (power %, ZWO format):
+```json
+{
+  "target": "POWER",
+  "filename": "workout.zwo",
+  "file_contents": "<workout_file><sportType>bike</sportType><workout><Warmup Duration=\"600\" PowerLow=\"0.55\" PowerHigh=\"0.75\"/><SteadyState Duration=\"1800\" Power=\"0.85\"/><Cooldown Duration=\"600\" PowerHigh=\"0.75\" PowerLow=\"0.55\"/></workout></workout_file>"
+}
+```
+
+**Text file formats** (`.txt`, `.icu`, etc.) are NOT supported by the API — always return "Unrecognised file format".
+
 ## Self-Improvement
 
 The athlete's personal data is stored in external files (mounted as volumes):
