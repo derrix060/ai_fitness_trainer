@@ -1,44 +1,42 @@
-# Stage 1: Build intervals-mcp Go binary
-FROM golang:1.26-bookworm AS go-builder
+# Stage 1: Build all Go binaries
+FROM golang:1.26-bookworm AS builder
 
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o bot ./cmd/bot/
+RUN CGO_ENABLED=0 GOOS=linux go build -o gcal-mcp ./cmd/gcal-mcp/
+
+# Also build intervals-mcp
 RUN go install github.com/derrix060/intervals-mcp@latest
 
+# Stage 2: Minimal runtime (no Python, no Node.js)
+FROM debian:bookworm-slim
 
-# Stage 2: Python runtime with Node.js and Claude CLI
-FROM python:3.14-slim-bookworm
-
-# Install Node.js 24 LTS (needed for google-calendar MCP via npx)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
-    curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
-    apt-get install -y --no-install-recommends nodejs && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Claude CLI (native installer, npm method is deprecated)
+# Install Claude CLI (standalone binary, no Node.js needed)
 RUN curl -fsSL https://claude.ai/install.sh | bash && \
     cp /root/.local/share/claude/versions/* /usr/local/bin/claude
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Copy Go binaries
+COPY --from=builder /build/bot /app/bot
+COPY --from=builder /build/gcal-mcp /app/gcal-mcp
+COPY --from=builder /go/bin/intervals-mcp /app/intervals-mcp
 
-# Copy intervals-mcp binary from Go build stage
-COPY --from=go-builder /go/bin/intervals-mcp /app/intervals-mcp
+COPY CLAUDE.md .mcp.json /app/
 
-# Set up app directory
 WORKDIR /app
 
-# Copy application source and install Python dependencies
-COPY pyproject.toml ./
-COPY src/ ./src/
-COPY CLAUDE.md .mcp.json ./
-RUN uv pip install --system .
-
-# Create non-root user
 RUN useradd --create-home --shell /bin/bash appuser && \
     mkdir -p /app/data /app/config && \
     chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["python", "-m", "src.main"]
+CMD ["/app/bot"]
