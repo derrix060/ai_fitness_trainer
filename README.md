@@ -16,13 +16,14 @@ Built for triathletes (swim/bike/run) and weight lifters.
 ## Architecture
 
 ```
-Telegram --> aiogram bot (Python) --> claude -p subprocess --> Anthropic API
-                                          |
-                        +-----------------+-----------------+
-                        |                 |                 |
-                  intervals-mcp    google-cal MCP      WebSearch
-                        |                 |                 |
-                  Intervals.icu    Google Calendar        Web
+Telegram --> Go bot (go-telegram/bot) --> claude -p subprocess --> Anthropic API
+                                               |
+                             +-----------------+-----------------+
+                             |                 |                 |
+                       intervals-mcp      gcal-mcp          WebSearch
+                       (Go binary)       (Go binary)             |
+                             |                 |                Web
+                       Intervals.icu    Google Calendar
 ```
 
 All components run inside a single Docker container. Claude Code CLI authenticates via OAuth token (Max subscription — no API key billing).
@@ -42,7 +43,7 @@ This token lets Claude Code run headless inside Docker using your Max subscripti
 
 ```bash
 # Install Claude Code if you haven't already
-curl -fsSL https://claude.ai/install.sh | bash
+curl -fsSL https://downloads.claude.ai/claude-code-releases/bootstrap.sh | bash
 
 # Generate a long-lived OAuth token for headless use
 claude setup-token
@@ -83,7 +84,7 @@ Quick version:
    ```bash
    GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
    GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
-     npx -y @cocal/google-calendar-mcp auth
+     go run ./cmd/gcal-mcp/ auth
    ```
 4. For multiple accounts, pass a nickname: `... auth personal`, `... auth work`
 
@@ -161,19 +162,21 @@ The coach also edits its own `CLAUDE.md` when you give it feedback (e.g. dietary
 
 ```
 ai_fitness_trainer/
+├── cmd/
+│   ├── bot/main.go           # Telegram bot entrypoint
+│   └── gcal-mcp/main.go      # Google Calendar MCP server + auth CLI
+├── internal/
+│   ├── config/               # Environment variable loading
+│   ├── store/                # SQLite session/KV/activity persistence
+│   ├── claude/               # Claude CLI subprocess wrapper (stream-json)
+│   ├── telegram/             # Bot handlers + message splitting
+│   └── scheduler/            # Morning briefing cron + activity check
 ├── .env.example              # Template for secrets
 ├── .mcp.json                 # MCP server config (intervals-icu + google calendar)
 ├── CLAUDE.md                 # Coach personality + self-improving memory
-├── Dockerfile                # Multi-stage: Go + Python + Node.js + Claude CLI
+├── Dockerfile                # Multi-stage: Go build + Claude CLI
 ├── docker-compose.yml
-├── pyproject.toml
-└── src/
-    ├── main.py               # Entrypoint
-    ├── config.py             # Settings from env vars
-    ├── telegram_bot.py       # aiogram handlers + whitelist
-    ├── claude_client.py      # claude -p subprocess wrapper (stream-json)
-    ├── session_store.py      # SQLite session persistence
-    └── scheduler.py          # Morning briefing cron (apscheduler)
+└── go.mod
 ```
 
 ## Troubleshooting

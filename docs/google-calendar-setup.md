@@ -2,11 +2,11 @@
 
 This guide covers setting up the Google Calendar integration, including multi-account support for querying personal and work calendars simultaneously.
 
-The bot uses [@cocal/google-calendar-mcp](https://www.npmjs.com/package/@cocal/google-calendar-mcp) as its MCP server.
+The bot uses a built-in Go MCP server (`cmd/gcal-mcp`) for Google Calendar access.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) (for `npx`)
+- [Go](https://go.dev/) 1.25+ (for running the auth command on your host)
 - A Google account
 - A Google Cloud project with the Calendar API enabled
 
@@ -41,7 +41,7 @@ Run the auth command to complete the browser-based OAuth flow:
 ```bash
 GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
 GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
-  npx -y @cocal/google-calendar-mcp auth
+  go run ./cmd/gcal-mcp/ auth
 ```
 
 Your browser will open asking you to authorize Google Calendar access. After granting access, tokens are saved to `./config/gcal-tokens.json`.
@@ -62,14 +62,14 @@ Authenticate each account by passing a nickname as the last argument:
 # Personal account — sign in with your personal Google account when the browser opens
 GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
 GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
-  npx -y @cocal/google-calendar-mcp auth personal
+  go run ./cmd/gcal-mcp/ auth personal
 ```
 
 ```bash
 # Work account — sign in with your work Google account when the browser opens
 GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
 GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
-  npx -y @cocal/google-calendar-mcp auth work
+  go run ./cmd/gcal-mcp/ auth work
 ```
 
 Repeat for as many accounts as you need.
@@ -115,7 +115,7 @@ Test that the MCP server can connect and list your calendars:
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list-calendars","arguments":{}}}' | \
   GOOGLE_OAUTH_CREDENTIALS=./config/gcp-oauth.keys.json \
   GOOGLE_CALENDAR_MCP_TOKEN_PATH=./config/gcal-tokens.json \
-  npx -y @cocal/google-calendar-mcp 2>/dev/null | python3 -m json.tool
+  go run ./cmd/gcal-mcp/ 2>/dev/null | jq .
 ```
 
 You should see a list of calendars from all authenticated accounts.
@@ -127,8 +127,7 @@ No extra Docker configuration is needed. The existing `docker-compose.yml` alrea
 ```json
 {
   "google-calendar": {
-    "command": "npx",
-    "args": ["-y", "@cocal/google-calendar-mcp"],
+    "command": "/app/gcal-mcp",
     "env": {
       "GOOGLE_OAUTH_CREDENTIALS": "/app/config/gcp-oauth.keys.json",
       "GOOGLE_CALENDAR_MCP_TOKEN_PATH": "/app/config/gcal-tokens.json"
