@@ -80,7 +80,9 @@ func morningBriefing(cfg *config.Config, sender Sender, c *claude.Client, s *sto
 		}
 
 		if newSessionID != "" {
-			s.SaveSession(userID, newSessionID)
+			if err := s.SaveSession(userID, newSessionID); err != nil {
+				log.Printf("ERROR: save session for user %d: %v", userID, err)
+			}
 		}
 		sender.SendFormatted(ctx, userID, responseText)
 		log.Printf("Morning briefing sent to user %d", userID)
@@ -115,7 +117,9 @@ func activityCheck(cfg *config.Config, sender Sender, c *claude.Client, s *store
 		}
 
 		if newSessionID != "" {
-			s.SaveSession(userID, newSessionID)
+			if err := s.SaveSession(userID, newSessionID); err != nil {
+				log.Printf("ERROR: save session for user %d: %v", userID, err)
+			}
 		}
 
 		if strings.Contains(responseText, "NO_NEW_ACTIVITIES") {
@@ -124,8 +128,11 @@ func activityCheck(cfg *config.Config, sender Sender, c *claude.Client, s *store
 		}
 
 		for _, match := range analyzedRe.FindAllStringSubmatch(responseText, -1) {
-			s.MarkActivityAnalyzed(match[1])
-			log.Printf("Marked activity %s as analyzed", match[1])
+			if err := s.MarkActivityAnalyzed(match[1]); err != nil {
+				log.Printf("ERROR: mark activity %s analyzed: %v", match[1], err)
+			} else {
+				log.Printf("Marked activity %s as analyzed", match[1])
+			}
 		}
 
 		clean := strings.TrimSpace(analyzedLineRe.ReplaceAllString(responseText, ""))
