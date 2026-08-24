@@ -30,3 +30,7 @@ uv.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Deploy (personal setup only — repo is public)
+DEPLOYMENT.md
+scripts/
