@@ -1,6 +1,6 @@
 # AI Fitness Trainer
 
-Personal AI fitness coach that runs as a Telegram bot, powered by [Claude Code](https://code.claude.com/) (Max subscription). It integrates with [Intervals.icu](https://intervals.icu) for training data, Google Calendar for scheduling, and web search for fitness research.
+Personal AI fitness coach that runs as a Telegram bot, powered by [Claude Code](https://code.claude.com/) (Max subscription). It integrates with [Intervals.icu](https://intervals.icu) for training data, Google Calendar for scheduling, TrainingPeaks for the coach-planned calendar, and web search for fitness research.
 
 Built for triathletes (swim/bike/run) and weight lifters.
 
@@ -88,7 +88,11 @@ Quick version:
    ```
 4. For multiple accounts, pass a nickname: `... auth personal`, `... auth work`
 
-### 5. Configure environment
+### 5. TrainingPeaks calendar (optional)
+
+In TrainingPeaks go to **Settings > Calendar Sharing** and copy the iCal link. Put it in `.env` as `TRAININGPEAKS_ICAL_URL` (use `https://`, not `webcal://`). The link carries a private token, so treat it like a password. The coach gets a read-only `list_workouts` tool; the feed only covers a window around today.
+
+### 6. Configure environment
 
 ```bash
 cp .env.example .env
@@ -113,7 +117,7 @@ BRIEFING_MINUTE=0            # (0-59)
 LOG_LEVEL=INFO
 ```
 
-### 6. Build and run
+### 7. Build and run
 
 ```bash
 docker compose build
@@ -164,7 +168,8 @@ The coach also edits its own `CLAUDE.md` when you give it feedback (e.g. dietary
 ai_fitness_trainer/
 ├── cmd/
 │   ├── bot/main.go           # Telegram bot entrypoint
-│   └── gcal-mcp/main.go      # Google Calendar MCP server + auth CLI
+│   ├── gcal-mcp/main.go      # Google Calendar MCP server + auth CLI
+│   └── trainingpeaks-mcp/    # TrainingPeaks iCal feed MCP server (read-only)
 ├── internal/
 │   ├── config/               # Environment variable loading
 │   ├── store/                # SQLite session/KV/activity persistence
@@ -172,7 +177,7 @@ ai_fitness_trainer/
 │   ├── telegram/             # Bot handlers + message splitting
 │   └── scheduler/            # Morning briefing cron + activity check
 ├── .env.example              # Template for secrets
-├── .mcp.json                 # MCP server config (intervals-icu + google calendar)
+├── .mcp.json                 # MCP server config (intervals-icu, google calendar, trainingpeaks)
 ├── CLAUDE.md                 # Coach personality + self-improving memory
 ├── Dockerfile                # Multi-stage: Go build + Claude CLI
 ├── docker-compose.yml

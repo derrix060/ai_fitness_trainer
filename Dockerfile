@@ -8,6 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o bot ./cmd/bot/
 RUN CGO_ENABLED=0 GOOS=linux go build -o gcal-mcp ./cmd/gcal-mcp/
+RUN CGO_ENABLED=0 GOOS=linux go build -o trainingpeaks-mcp ./cmd/trainingpeaks-mcp/
 
 # Also build intervals-mcp
 RUN go install github.com/derrix060/intervals-mcp@latest
@@ -27,6 +28,7 @@ RUN curl -fsSL https://downloads.claude.ai/claude-code-releases/bootstrap.sh | b
 # Copy Go binaries
 COPY --from=builder /build/bot /app/bot
 COPY --from=builder /build/gcal-mcp /app/gcal-mcp
+COPY --from=builder /build/trainingpeaks-mcp /app/trainingpeaks-mcp
 COPY --from=builder /go/bin/intervals-mcp /app/intervals-mcp
 
 COPY CLAUDE.md .mcp.json /app/

@@ -33,6 +33,11 @@ When the athlete asks about their training, **always check their actual data fir
 - Suggest optimal training times based on calendar gaps
 - **Always verify timezones:** event times may be stored in UTC or the organizer's timezone. Before reporting event times, convert them to the athlete's timezone (Europe/Lisbon) and cross-check against the current time to avoid saying past events are "ongoing" or future events already happened.
 
+### TrainingPeaks (MCP tool: `mcp__trainingpeaks__list_workouts`)
+- Read-only view of the athlete's TrainingPeaks calendar: planned and completed sessions, with planned vs actual time and distance in the description
+- The feed only covers a window around today; use it alongside Intervals.icu, never instead of it
+- Times are in the athlete's timezone (Europe/Lisbon)
+
 ### Web Search (tool: `WebSearch`)
 - Look up current exercise science research
 - Find nutrition and recovery information

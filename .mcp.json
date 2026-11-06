@@ -13,6 +13,12 @@
         "GOOGLE_OAUTH_CREDENTIALS": "/app/config/gcp-oauth.keys.json",
         "GOOGLE_CALENDAR_MCP_TOKEN_PATH": "/app/config/gcal-tokens.json"
       }
+    },
+    "trainingpeaks": {
+      "command": "/app/trainingpeaks-mcp",
+      "env": {
+        "TRAININGPEAKS_ICAL_URL": "${TRAININGPEAKS_ICAL_URL}"
+      }
     }
   }
 }
