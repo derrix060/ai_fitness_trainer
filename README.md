@@ -7,7 +7,7 @@ Built for triathletes (swim/bike/run) and weight lifters.
 ## Features
 
 - **Data-driven coaching** — queries your Intervals.icu data (activities, training load, wellness, power curves) before giving advice
-- **Calendar-aware** — checks Google Calendar to schedule workouts around your life
+- **Calendar-aware** — reads your TrainingPeaks calendar (planned vs completed sessions)
 - **Morning briefing** — configurable daily cron that sends your training plan, checks wellness, and asks how you're feeling
 - **Self-improving** — give feedback ("I'm vegetarian", "I have a knee injury") and the coach remembers it permanently by editing its own instructions
 - **Conversation memory** — sessions persist across container restarts via SQLite
@@ -72,7 +72,9 @@ Then get your numeric user ID:
 
 The bot uses [intervals-mcp](https://github.com/derrix060/intervals-mcp), a Go-based MCP server that exposes 144 tools for the full Intervals.icu API. It's built from source during `docker build`.
 
-### 4. Google Calendar setup (optional)
+### 4. Google Calendar setup (currently disabled)
+
+The `gcal-mcp` server is still built into the image but is not in `.mcp.json` or the allowed tools, so the coach cannot use it. To re-enable, add it back to `.mcp.json` and `allowedTools` in `internal/claude/client.go`.
 
 See [docs/google-calendar-setup.md](docs/google-calendar-setup.md) for the full guide, including multi-account support (e.g. personal + work calendars).
 

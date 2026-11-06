@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const allowedTools = "mcp__intervals-icu__*,mcp__google-calendar__*,mcp__trainingpeaks__*,WebSearch,Read,Edit"
+const allowedTools = "mcp__intervals-icu__*,mcp__trainingpeaks__*,WebSearch,Read,Edit"
 
 type Client struct {
 	model   string
