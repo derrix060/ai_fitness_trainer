@@ -1,6 +1,6 @@
 # AI Fitness Trainer
 
-Personal AI fitness coach that runs as a Telegram bot, powered by [Claude Code](https://code.claude.com/) (Max subscription). It integrates with [Intervals.icu](https://intervals.icu) for training data, Google Calendar for scheduling, TrainingPeaks for the coach-planned calendar, and web search for fitness research.
+Personal AI fitness coach that runs as a Telegram bot, powered by [Claude Code](https://code.claude.com/) (Max subscription). It integrates with [Intervals.icu](https://intervals.icu) for training data, TrainingPeaks for the coach-planned calendar, and web search for fitness research.
 
 Built for triathletes (swim/bike/run) and weight lifters.
 
@@ -20,10 +20,10 @@ Telegram --> Go bot (go-telegram/bot) --> claude -p subprocess --> Anthropic API
                                                |
                              +-----------------+-----------------+
                              |                 |                 |
-                       intervals-mcp      gcal-mcp          WebSearch
+                       intervals-mcp   trainingpeaks-mcp   WebSearch
                        (Go binary)       (Go binary)             |
                              |                 |                Web
-                       Intervals.icu    Google Calendar
+                       Intervals.icu    TrainingPeaks
 ```
 
 All components run inside a single Docker container. Claude Code CLI authenticates via OAuth token (Max subscription — no API key billing).
@@ -179,7 +179,7 @@ ai_fitness_trainer/
 │   ├── telegram/             # Bot handlers + message splitting
 │   └── scheduler/            # Morning briefing cron + activity check
 ├── .env.example              # Template for secrets
-├── .mcp.json                 # MCP server config (intervals-icu, google calendar, trainingpeaks)
+├── .mcp.json                 # MCP server config (intervals-icu, trainingpeaks)
 ├── CLAUDE.md                 # Coach personality + self-improving memory
 ├── Dockerfile                # Multi-stage: Go build + Claude CLI
 ├── docker-compose.yml
